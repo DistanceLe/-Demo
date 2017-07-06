@@ -136,14 +136,12 @@
 {
     switch (peripheral.state) {
         case CBPeripheralManagerStatePoweredOn:
-            NSLog(@"BLE已打开");
             [self writeToLog:@"BLE已打开"];
             //添加服务
             [self setupService];
             break;
             
         default:
-            NSLog(@"此设备不支持BLE或未打开蓝牙功能，无法作为外围设备.");
             [self writeToLog:@"此设备不支持BLE或未打开蓝牙功能，无法作为外围设备."];
             break;
     }
@@ -153,7 +151,6 @@
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didAddService:(CBService *)service error:(NSError *)error
 {
     if (error) {
-        NSLog(@"向外围设备添加服务失败，错误详情：%@",error.localizedDescription);
         [self writeToLog:[NSString stringWithFormat:@"向外围设备添加服务失败，错误详情：%@",error.localizedDescription]];
         return;
     }
@@ -161,7 +158,6 @@
     //添加服务后开始广播
     NSDictionary* dic=@{CBAdvertisementDataLocalNameKey:kPeripheralName};//广播设置
     [self.peripheralManager startAdvertising:dic];
-    NSLog(@"向外围设备添加了服务并开始广播...");
     [self writeToLog:@"向外围设备添加了服务并开始广播..."];
 }
 
@@ -169,18 +165,15 @@
 -(void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral error:(NSError *)error
 {
     if (error) {
-        NSLog(@"启动广播过程中发生错误，错误信息%@",error.localizedDescription);
         [self writeToLog:[NSString stringWithFormat:@"启动广播过程中发生错误，错误信息：%@",error.localizedDescription]];
         return;
     }
-    NSLog(@"启动广播。。。。");
     [self writeToLog:@"启动广播。。。"];
 }
 
 /**  外围设备的特征 被中心设备订阅后： */
 -(void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didSubscribeToCharacteristic:(CBCharacteristic *)characteristic
 {
-    NSLog(@"中心设备：%@已订阅特征：%@",central, characteristic);
     [self writeToLog:[NSString stringWithFormat:@"中心设备：%@ 已订阅特征：%@.",central.identifier.UUIDString,characteristic.UUID]];
     
     //发现中心设备并存储
@@ -197,27 +190,25 @@
 /**  取消订阅特征 */
 -(void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didUnsubscribeFromCharacteristic:(CBCharacteristic *)characteristic
 {
-    NSLog(@"didUnsubscribeFromCharacteristic");
+    [self writeToLog:[NSString stringWithFormat:@"取消订阅特征 %@", characteristic.UUID]];
 }
 
 /**  收到 中心设备发送来的读请求 */
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveReadRequest:(CBATTRequest *)request
 {
-    NSLog(@"收到读characteristics请求");
-    [self writeToLog:@"收到读characteristics请求"];
+    [self writeToLog:@"收到 中心设备发送来的 读特征 请求"];
 }
 
 /**  收到 中心设备发送来的写请求 */
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveWriteRequests:(NSArray<CBATTRequest *> *)requests
 {
-    NSLog(@"收到写characteristics请求");
-    [self writeToLog:@"收到写characteristics请求"];
+    [self writeToLog:@"收到 中心设备发送来的 写特征 请求"];
 }
 
 /**  外设 还原状态 */
 -(void)peripheralManager:(CBPeripheralManager *)peripheral willRestoreState:(NSDictionary<NSString *,id> *)dict
 {
-    NSLog(@"willRestoreState");
+    [self writeToLog:@"外设 还原状态"];
 }
 
 
@@ -226,7 +217,6 @@
 {
     switch (central.state) {
         case CBPeripheralManagerStatePoweredOn:
-            NSLog(@"BLE已打开. 开始 扫描外围设备");
             [self writeToLog:@"BLE已打开. 开始 扫描外围设备"];
             //蓝牙打开： 开始 扫描外围设备
             
@@ -236,7 +226,6 @@
             break;
             
         default:
-            NSLog(@"此设备不支持BLE或未打开蓝牙功能，无法作为外围设备.");
             [self writeToLog:@"此设备不支持BLE或未打开蓝牙功能，无法作为外围设备."];
             break;
     }
@@ -252,7 +241,6 @@
  */
 -(void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *,id> *)advertisementData RSSI:(NSNumber *)RSSI
 {
-    NSLog(@"发现外围设备...  停止扫描 ");
     [self writeToLog:[NSString stringWithFormat:@"发现外围设备.%@..  停止扫描",advertisementData[CBAdvertisementDataLocalNameKey]]];
     //停止扫描
     [self.centralManager stopScan];
@@ -262,7 +250,6 @@
         if (![self.peripherals containsObject:peripheral]) {
             [self.peripherals addObject:peripheral];
         }
-        NSLog(@"开始连接外围设备...");
         [self writeToLog:@"开始连接外围设备..."];
         [self.centralManager connectPeripheral:peripheral options:nil];
     }
@@ -270,18 +257,18 @@
 /**  连接到外围设备 */
 -(void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
 {
-    NSLog(@"连接外围设备成功!");
     [self writeToLog:@"连接外围设备成功!"];
     //设置外围设备的代理为当前视图控制器
     peripheral.delegate=self;
     //外围设备开始寻找服务
     [peripheral discoverServices:@[[CBUUID UUIDWithString:kServiceUUID]]];
+
+    
 }
 
 /**  连接外围设备失败 */
 -(void)centralManager:(CBCentralManager *)central didFailToConnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error
 {
-    NSLog(@"连接外围设备失败!");
     [self writeToLog:@"连接外围设备失败!"];
 }
 
@@ -289,10 +276,8 @@
 /**  中心设备获取到外设的 services：后 */
 -(void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error
 {
-    NSLog(@"CBPeripheral 代理方法 ===已发现可用服务...");
     [self writeToLog:@"CBPeripheral 代理方法 ===已发现可用服务..."];
     if (error) {
-        NSLog(@"CBPeripheral 代理方法 ===外围设备寻找服务过程中发生错误，错误信息：%@",error.localizedDescription);
         [self writeToLog:[NSString stringWithFormat:@"CBPeripheral 代理方法 ===外围设备寻找服务过程中发生错误，错误信息：%@",error.localizedDescription]];
     }
     
@@ -309,10 +294,8 @@
 /**  获取到外部设备 的特征（Characteristics）后：  */
 -(void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
 {
-    NSLog(@"CBPeripheral 代理方法 ===已发现可用特征...");
     [self writeToLog:@"CBPeripheral 代理方法 ===已发现可用特征..."];
     if (error) {
-        NSLog(@"CBPeripheral 代理方法 ===外围设备寻找特征过程中发生错误，错误信息：%@",error.localizedDescription);
         [self writeToLog:[NSString stringWithFormat:@"CBPeripheral 代理方法 ===外围设备寻找特征过程中发生错误，错误信息：%@",error.localizedDescription]];
     }
     //遍历服务中的特征
@@ -342,32 +325,29 @@
 /**  收到外设特征更新的 通知 */
 -(void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
 {
-    NSLog(@"CBPeripheral 代理方法 ===收到特征更新通知...");
     [self writeToLog:@"CBPeripheral 代理方法 ===收到特征更新通知..."];
     if (error) {
-        NSLog(@"CBPeripheral 代理方法 ===更新通知状态时发生错误，错误信息：%@",error.localizedDescription);
+        [self writeToLog:[NSString stringWithFormat:@"CBPeripheral 代理方法 ===更新通知状态时发生错误，错误信息：%@",error.localizedDescription]];
     }
     //给特征值设置新的值
     CBUUID* characteristicUUID=[CBUUID UUIDWithString:kCharacteristicUUID];
     if ([characteristic.UUID isEqual:characteristicUUID]) {
         if (characteristic.isNotifying) {
-            if (characteristic.properties==CBCharacteristicPropertyNotify) {
-                NSLog(@"CBPeripheral 代理方法 ===已订阅特征通知.");
+            if ((characteristic.properties & CBCharacteristicPropertyNotify) > 0) {
                 [self writeToLog:@"CBPeripheral 代理方法 ===已订阅特征通知."];
                 return;
             }
-            else if (characteristic.properties==CBCharacteristicPropertyRead)
+            if ((characteristic.properties & CBCharacteristicPropertyRead) > 0)
             {
                 //从外围设备读取新值,调用此方法会触发代理方法：-(void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
                 [peripheral readValueForCharacteristic:characteristic];
             }
-            else
-            {
-                NSLog(@"CBPeripheral 代理方法 ===停止已停止.");
-                [self writeToLog:@"CBPeripheral 代理方法 ===停止已停止."];
-                //取消连接
-                [self.centralManager cancelPeripheralConnection:peripheral];
-            }
+//            else
+//            {
+//                [self writeToLog:@"CBPeripheral 代理方法 ===停止已停止."];
+//                //取消连接
+//                [self.centralManager cancelPeripheralConnection:peripheral];
+//            }
         }
     }
 }
@@ -376,7 +356,6 @@
 -(void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
 {
     if (error) {
-        NSLog(@"CBPeripheral 代理方法 ===更新特征值时发生错误，错误信息：%@",error.localizedDescription);
         [self writeToLog:[NSString stringWithFormat:@"CBPeripheral 代理方法 ===更新特征值时发生错误，错误信息：%@",error.localizedDescription]];
         return;
     }
@@ -386,12 +365,10 @@
         
         
         NSString* value=[[NSString alloc]initWithData:characteristic.value encoding:NSUTF8StringEncoding];
-        NSLog(@"CBPeripheral 代理方法 ===读取到特征值：%@",value);
         [self writeToLog:[NSString stringWithFormat:@"CBPeripheral 代理方法 ===读取到特征值：%@",value]];
     }
     else
     {
-        NSLog(@"CBPeripheral 代理方法 ===未发现特征值.");
         [self writeToLog:@"CBPeripheral 代理方法 ===未发现特征值."];
     }
 }
@@ -420,8 +397,6 @@
     }else{
         [self writeToLog:[NSString stringWithFormat:@"更新特征值：%@ 失败😔",valueStr]];
     }
-    
-    
 }
 
 /**  中心设备 向外围 写特征值(或描述) */
@@ -470,6 +445,7 @@
 /**  写入到 页面的log */
 -(void)writeToLog:(NSString*)info
 {
+    NSLog(@"%@", info);
     self.logInfo.text=[NSString stringWithFormat:@"%@\n%@",self.logInfo.text, info];
 }
 
