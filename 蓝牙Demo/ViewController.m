@@ -11,7 +11,7 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 
 #define kPeripheralName @"Lijie's Device" //外围设备名称
-#define kServiceUUID @"C4FB2349-72FE-4CA2-94D6-1F3CB16331EE" //服务的UUID
+#define kServiceUUID @"6A3E4B28-522D-4B3B-82A9-888888888888" //服务的UUID
 #define kCharacteristicUUID @"6A3E4B28-522D-4B3B-82A9-D5E2004534FC" //特征的UUID
 
 
@@ -69,6 +69,7 @@
 @property(nonatomic, strong)CBPeripheralManager* peripheralManager;//外围设备管理器
 @property(nonatomic, strong)NSMutableArray* centralArray;//订阅此外围设备特征的中心设备
 @property(nonatomic, strong)CBMutableCharacteristic* characteristicM;//特征
+@property(nonatomic, strong)CBCharacteristic* characteristic;//特征
 @property (weak, nonatomic) IBOutlet UITextView *logInfo;
 
 /**  中心服务器 */
@@ -125,6 +126,7 @@
 - (IBAction)right:(UIBarButtonItem *)sender
 {
     if (_isCentral) {
+        [self writeCharacteristic];
         return;
     }
     [self updateCharacteristicValue];
@@ -196,7 +198,7 @@
 /**  收到 中心设备发送来的读请求 */
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveReadRequest:(CBATTRequest *)request
 {
-    [self writeToLog:@"收到 中心设备发送来的 读特征 请求"];
+    [self writeToLog:[NSString stringWithFormat:@"收到 中心设备发送来的 读特征 请求%@", request.characteristic.value]];
 }
 
 /**  收到 中心设备发送来的写请求 */
@@ -220,7 +222,7 @@
             [self writeToLog:@"BLE已打开. 开始 扫描外围设备"];
             //蓝牙打开： 开始 扫描外围设备
             
-            //这个参数应该也是可以指定特定的peripheral的UUID,那么理论上这个central只会discover这个特定的设备，但是我实际测试发现，如果用特定的UUID传参根本找不到任何设备
+            //这个参数应该也是可以指定特定的peripheral的UUID,那么理论上这个central只会discover这个特定的设备
 //            [central scanForPeripheralsWithServices:@[[CBUUID UUIDWithString:kServiceUUID]] options:@{CBCentralManagerScanOptionAllowDuplicatesKey:@YES}];
             [central scanForPeripheralsWithServices:nil options:@{CBCentralManagerScanOptionAllowDuplicatesKey:@YES}];
             break;
@@ -309,6 +311,8 @@
                  *1.调用此方法会触发代理方法：-(void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
                  *2.调用此方法会触发外围设备的订阅代理方法
                  */
+                [self writeToLog:@"CBPeripheral 代理方法 ===找到一个匹配的特征..."];
+                self.characteristic = characteristic;
                 [peripheral setNotifyValue:YES forCharacteristic:characteristic];
                 //情景二：读取 （获取外设的Characteristics 的 Descriptor 和 Descriptor 的值：）
 //                [peripheral readValueForCharacteristic:characteristic];
@@ -375,12 +379,12 @@
 
 /**  搜索到该描述的特征后 调用 */
 -(void)peripheral:(CBPeripheral *)peripheral didDiscoverDescriptorsForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
-    
+    [self writeToLog:@"CBPeripheral 代理方法 ===发现特征的描述."];
 }
 
 /**  获取到Descriptors 的值   Descriptors 是对 characteristic 的描述，一般是字符串*/
 -(void)peripheral:(CBPeripheral *)peripheral didUpdateValueForDescriptor:(CBDescriptor *)descriptor error:(NSError *)error{
-    
+    [self writeToLog:@"CBPeripheral 代理方法 ===描述更新."];
 }
 
 #pragma mark - ================ Action ==================
@@ -404,7 +408,17 @@
     CBPeripheral* peripheral = self.peripherals.firstObject;
     if (peripheral) {
 //        peripheral writeValue:(nonnull NSData *) forDescriptor:(nonnull CBDescriptor *)
-//        peripheral writeValue:(nonnull NSData *) forCharacteristic:(nonnull CBCharacteristic *) type:(CBCharacteristicWriteType)
+        
+        int8_t testNum = 88;
+        NSMutableData* data = [NSMutableData dataWithBytes:&testNum length:1];
+        [self writeToLog:@"写入数据"];
+        
+        [peripheral writeValue:data forCharacteristic:self.characteristic type:CBCharacteristicWriteWithoutResponse];
+        
+//        for (NSInteger i = 0; i<15; i++) {
+//            [data appendBytes:&testNum length:1];
+//        }
+//        [peripheral writeValue:data forDescriptor:[[CBMutableDescriptor alloc]initWithType:[CBUUID UUIDWithString:kCharacteristicUUID] value:data]];
     }
 }
 
@@ -425,7 +439,7 @@
      * permissions:特征的权限
      */
     
-    CBMutableCharacteristic* charateristicM=[[CBMutableCharacteristic alloc]initWithType:characteristicUUID properties:CBCharacteristicPropertyNotify value:nil permissions:CBAttributePermissionsReadable];
+    CBMutableCharacteristic* charateristicM=[[CBMutableCharacteristic alloc]initWithType:characteristicUUID properties:(CBCharacteristicPropertyNotify | CBCharacteristicPropertyWrite | CBCharacteristicPropertyRead | CBCharacteristicPropertyWriteWithoutResponse) value:nil permissions:CBAttributePermissionsReadable];
     self.characteristicM=charateristicM;
     //    CBMutableCharacteristic *characteristicM=[[CBMutableCharacteristic alloc]initWithType:characteristicUUID properties:CBCharacteristicPropertyRead value:nil permissions:CBAttributePermissionsReadable];
     //    characteristicM.value=value;
